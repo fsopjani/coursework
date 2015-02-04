@@ -18,7 +18,7 @@ public class BnzInstruction extends Instruction {
 	}
 
 	public BnzInstruction(String label, int register, int value) {
-		super(label, "lin");
+		super(label, "bnz");
 		this.register = register;
 		this.value = value;
 
@@ -26,7 +26,7 @@ public class BnzInstruction extends Instruction {
 
 	@Override
 	public void execute(Machine m) {
-		m.getRegisters().setRegister(register, value);
+		m.getRegisters().getRegister(register);
 	}
 
 	@Override

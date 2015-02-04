@@ -1,9 +1,14 @@
 package sml;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.NoSuchElementException;
+import java.util.Properties;
 import java.util.Scanner;
 
 /*
@@ -19,7 +24,7 @@ public class Translator {
 	private ArrayList<Instruction> program; // The program to be created
 	private String fileName; // source file of SML code
 
-	private static final String SRC = "src";
+	private static final String SRC = "resources";
 
 	public Translator(String fileName) {
 		this.fileName = SRC + "/" + fileName;
@@ -72,31 +77,90 @@ public class Translator {
 	// line should consist of an MML instruction, with its label already
 	// removed. Translate line into an instruction with label label
 	// and return the instruction
-	public Instruction getInstruction(String label) {
-		int s1; // Possible operands of the instruction
-		int s2;
-		int r;
-		int x;
+	//	public Instruction getInstruction(String label) {
+	//		int s1; // Possible operands of the instruction
+	//		int s2;
+	//		int r;
+	//		int x;
+	//
+	//		if (line.equals(""))
+	//			return null;
+	//
+	//		String ins = scan();
+	//
+	//		Instruction  in = null ; // AddInstruction(label, result, op1, op2)
+	//
+	//		String cla = in.getClass().getName().substring(0, 3);
+	//
+	//		switch (ins) {
+	//		case "add":
+	//			r = scanInt();
+	//			s1 = scanInt();
+	//			s2 = scanInt();
+	//			return new AddInstruction(label, r, s1, s2);
+	//		case "lin":
+	//			r = scanInt();
+	//			s1 = scanInt();
+	//			return new LinInstruction(label, r, s1);
+	//		}
+	//
+	//		// You will have to write code here for the other instructions.
+	//
+	//		return null;
+	//	}
 
+
+	public Instruction getInstruction(String label) {
 		if (line.equals(""))
 			return null;
-
 		String ins = scan();
-		switch (ins) {
-		case "add":
-			r = scanInt();
-			s1 = scanInt();
-			s2 = scanInt();
-			return new AddInstruction(label, r, s1, s2);
-		case "lin":
-			r = scanInt();
-			s1 = scanInt();
-			return new LinInstruction(label, r, s1);
+		try {
+			Class<?> cls = Class.forName(getClassName(ins));
+			Constructor<?>[] constructors = cls.getConstructors();
+			for(Constructor<?> ctr : constructors){
+				Class<?>[] consPropTypes = ctr.getParameterTypes();
+				if(consPropTypes.length>=3){
+					Object[] argsObj = appendObjectArgs(consPropTypes,ins);
+					return (Instruction)ctr.newInstance(argsObj);
+				}
+			}
+
+		} catch (InstantiationException | IllegalAccessException | ClassNotFoundException | SecurityException | IllegalArgumentException | InvocationTargetException e) {
+			e.printStackTrace();
 		}
 
 		// You will have to write code here for the other instructions.
 
 		return null;
+	}
+	private Object[] appendObjectArgs(Class<?>[] conPropTypes, String ins) {
+		int intVal;
+		ArrayList<Object> temp = new ArrayList<Object>();
+		temp.add(ins);	
+		for(int x =0; x< conPropTypes.length;x++){
+			if(conPropTypes[x].isPrimitive()){
+				intVal = scanInt();
+				temp.add(intVal);
+			}
+		}
+		return temp.toArray();
+	}
+	private String getClassName(String ins) {
+		Properties prop = new Properties();
+		String propFileName = "instructions.properties";
+		InputStream inputStream = getClass().getClassLoader().getResourceAsStream(propFileName);
+		String className="";
+		try {
+			if (inputStream != null) {
+				prop.load(inputStream);
+				className = prop.getProperty(ins);
+			}else{
+				throw new FileNotFoundException("property file '" + propFileName + "' not found in the classpath");	
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return className;
 	}
 
 	/*
