@@ -14,6 +14,10 @@ import java.util.Scanner;
 /*
  * The translator of a <b>S</b><b>M</b>al<b>L</b> program.
  */
+/**
+ * @author fatos
+ *
+ */
 public class Translator {
 
 	// word + line is the part of the current line that's not yet processed
@@ -23,8 +27,10 @@ public class Translator {
 	private Labels labels; // The labels of the program being translated
 	private ArrayList<Instruction> program; // The program to be created
 	private String fileName; // source file of SML code
-
+	private String wholeLine ="";
 	private static final String SRC = "resources";
+	private static final String STRING_TYPE = "java.lang.String";
+	private static final String INT_TYPE 	= "int";
 
 	public Translator(String fileName) {
 		this.fileName = SRC + "/" + fileName;
@@ -51,8 +57,8 @@ public class Translator {
 			// Each iteration processes line and reads the next line into line
 			while (line != null) {
 				// Store the label in label
+				wholeLine = line;
 				String label = scan();
-
 				if (label.length() > 0) {
 					Instruction ins = getInstruction(label);
 					if (ins != null) {
@@ -74,58 +80,29 @@ public class Translator {
 		return true;
 	}
 
-	// line should consist of an MML instruction, with its label already
-	// removed. Translate line into an instruction with label label
-	// and return the instruction
-	//	public Instruction getInstruction(String label) {
-	//		int s1; // Possible operands of the instruction
-	//		int s2;
-	//		int r;
-	//		int x;
-	//
-	//		if (line.equals(""))
-	//			return null;
-	//
-	//		String ins = scan();
-	//
-	//		Instruction  in = null ; // AddInstruction(label, result, op1, op2)
-	//
-	//		String cla = in.getClass().getName().substring(0, 3);
-	//
-	//		switch (ins) {
-	//		case "add":
-	//			r = scanInt();
-	//			s1 = scanInt();
-	//			s2 = scanInt();
-	//			return new AddInstruction(label, r, s1, s2);
-	//		case "lin":
-	//			r = scanInt();
-	//			s1 = scanInt();
-	//			return new LinInstruction(label, r, s1);
-	//		}
-	//
-	//		// You will have to write code here for the other instructions.
-	//
-	//		return null;
-	//	}
 
-
+	/**
+	 * @param label
+	 * @return
+	 */
 	public Instruction getInstruction(String label) {
 		if (line.equals(""))
 			return null;
-		String ins = scan();
+		String ins = getMachineInstructions("instruction");
+		int noOfArgs =0;
 		try {
-			Class<?> cls = Class.forName(getClassName(ins));
+			Class<?> cls = Class.forName(getClassName(ins));			
 			Constructor<?>[] constructors = cls.getConstructors();
 			for(Constructor<?> ctr : constructors){
 				Class<?>[] consPropTypes = ctr.getParameterTypes();
-				if(consPropTypes.length>=3){
-					Object[] argsObj = appendObjectArgs(consPropTypes,ins);
+				noOfArgs = getNoOfArgs();
+				if(noOfArgs == consPropTypes.length){
+					Object[] argsObj = appendObjectArgs(consPropTypes);
 					return (Instruction)ctr.newInstance(argsObj);
 				}
 			}
 
-		} catch (InstantiationException | IllegalAccessException | ClassNotFoundException | SecurityException | IllegalArgumentException | InvocationTargetException e) {
+		} catch (InstantiationException | IllegalAccessException | ClassNotFoundException | SecurityException | IllegalArgumentException | InvocationTargetException  e) {
 			e.printStackTrace();
 		}
 
@@ -133,34 +110,51 @@ public class Translator {
 
 		return null;
 	}
-	private Object[] appendObjectArgs(Class<?>[] conPropTypes, String ins) {
-		int intVal;
+
+	// split whole line  counts the length minus the label
+	/**
+	 * @return
+	 */
+	private int getNoOfArgs() {
+		String[] argumentList = wholeLine.split(" ");
+		return argumentList.length-1;
+	}
+	
+	/**
+	 * @param ins
+	 * @return
+	 */
+	private String getMachineInstructions(String ins){
+		String[] line = wholeLine.split(" "); 
+		switch (ins) {
+		case "label": return line[0];
+		case "instruction": return line[1];
+		}
+		return null;
+	}
+	
+	/**
+	 * @param conPropTypes
+	 * @param ins
+	 * @param noOfArgs
+	 * @return
+	 */
+	private Object[] appendObjectArgs(Class<?>[] conPropTypes) {
+		int intVal = 0;
+		String strVAl = null;
 		ArrayList<Object> temp = new ArrayList<Object>();
-		temp.add(ins);	
-		for(int x =0; x< conPropTypes.length;x++){
-			if(conPropTypes[x].isPrimitive()){
+		for(int i =0; i< conPropTypes.length;i++){
+			System.out.println("c: "+ conPropTypes[i].getName());
+			if(conPropTypes[i].getName().equalsIgnoreCase(INT_TYPE)){
 				intVal = scanInt();
 				temp.add(intVal);
+			}else if(conPropTypes[i].getName().equalsIgnoreCase(STRING_TYPE)){
+				strVAl = scan();
+				temp.add(strVAl);
 			}
+			System.out.println("int:" + intVal + " str: " +strVAl);
 		}
 		return temp.toArray();
-	}
-	private String getClassName(String ins) {
-		Properties prop = new Properties();
-		String propFileName = "instructions.properties";
-		InputStream inputStream = getClass().getClassLoader().getResourceAsStream(propFileName);
-		String className="";
-		try {
-			if (inputStream != null) {
-				prop.load(inputStream);
-				className = prop.getProperty(ins);
-			}else{
-				throw new FileNotFoundException("property file '" + propFileName + "' not found in the classpath");	
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return className;
 	}
 
 	/*
@@ -195,4 +189,27 @@ public class Translator {
 			return Integer.MAX_VALUE;
 		}
 	}
+	
+	/**
+	 * @param ins
+	 * @return
+	 */
+	private String getClassName(String ins) {
+		Properties prop = new Properties();
+		String propFileName = "instructions.properties";
+		InputStream inputStream = getClass().getClassLoader().getResourceAsStream(propFileName);
+		String className="";
+		try {
+			if (inputStream != null) {
+				prop.load(inputStream);
+				className = prop.getProperty(ins);
+			}else{
+				throw new FileNotFoundException("property file '" + propFileName + "' not found in the classpath");	
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return className;
+	}
+
 }

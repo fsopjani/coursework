@@ -24,7 +24,7 @@ public class OutInstruction extends Instruction {
 
 	@Override
 	public void execute(Machine m) {
-		m.getRegisters().getRegister(registerID);
+		System.out.println("Content in register "+ registerID +" is: "+m.getRegisters().getRegister(registerID));
 	}
 
 	@Override
