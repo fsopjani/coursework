@@ -11,6 +11,8 @@ import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.Scanner;
 
+import sml.instructions.SMLInstrcutions;
+
 /*
  * The translator of a <b>S</b><b>M</b>al<b>L</b> program.
  */
@@ -29,8 +31,6 @@ public class Translator {
 	private String fileName; // source file of SML code
 	private String wholeLine ="";
 	private static final String SRC = "resources";
-	private static final String STRING_TYPE = "java.lang.String";
-	private static final String INT_TYPE 	= "int";
 
 	public Translator(String fileName) {
 		this.fileName = SRC + "/" + fileName;
@@ -66,7 +66,6 @@ public class Translator {
 						program.add(ins);
 					}
 				}
-
 				try {
 					line = sc.nextLine();
 				} catch (NoSuchElementException ioE) {
@@ -88,74 +87,31 @@ public class Translator {
 	public Instruction getInstruction(String label) {
 		if (line.equals(""))
 			return null;
-		String ins = getMachineInstructions("instruction");
+		SMLInstrcutions smlIns = new SMLInstrcutions(wholeLine);
+		String ins = smlIns.getInstruction();
 		int noOfArgs =0;
+		
+		boolean isTypeMatch=false;
 		try {
 			Class<?> cls = Class.forName(getClassName(ins));			
 			Constructor<?>[] constructors = cls.getConstructors();
 			for(Constructor<?> ctr : constructors){
 				Class<?>[] consPropTypes = ctr.getParameterTypes();
-				noOfArgs = getNoOfArgs();
+				Object[] argsObj = smlIns.getConstructionArgs();
+				noOfArgs = smlIns.getNumberOfArgs();
 				if(noOfArgs == consPropTypes.length){
-					Object[] argsObj = appendObjectArgs(consPropTypes);
-					return (Instruction)ctr.newInstance(argsObj);
+					isTypeMatch = smlIns.checkInstructionType(consPropTypes);
+					if(isTypeMatch){
+						return (Instruction)ctr.newInstance(argsObj);
+					}
 				}
 			}
-
 		} catch (InstantiationException | IllegalAccessException | ClassNotFoundException | SecurityException | IllegalArgumentException | InvocationTargetException  e) {
 			e.printStackTrace();
 		}
-
-		// You will have to write code here for the other instructions.
-
 		return null;
 	}
 
-	// split whole line  counts the length minus the label
-	/**
-	 * @return
-	 */
-	private int getNoOfArgs() {
-		String[] argumentList = wholeLine.split(" ");
-		return argumentList.length-1;
-	}
-	
-	/**
-	 * @param ins
-	 * @return
-	 */
-	private String getMachineInstructions(String ins){
-		String[] line = wholeLine.split(" "); 
-		switch (ins) {
-		case "label": return line[0];
-		case "instruction": return line[1];
-		}
-		return null;
-	}
-	
-	/**
-	 * @param conPropTypes
-	 * @param ins
-	 * @param noOfArgs
-	 * @return
-	 */
-	private Object[] appendObjectArgs(Class<?>[] conPropTypes) {
-		int intVal = 0;
-		String strVAl = null;
-		ArrayList<Object> temp = new ArrayList<Object>();
-		for(int i =0; i< conPropTypes.length;i++){
-			System.out.println("c: "+ conPropTypes[i].getName());
-			if(conPropTypes[i].getName().equalsIgnoreCase(INT_TYPE)){
-				intVal = scanInt();
-				temp.add(intVal);
-			}else if(conPropTypes[i].getName().equalsIgnoreCase(STRING_TYPE)){
-				strVAl = scan();
-				temp.add(strVAl);
-			}
-			System.out.println("int:" + intVal + " str: " +strVAl);
-		}
-		return temp.toArray();
-	}
 
 	/*
 	 * Return the first word of line and remove it from line. If there is no
@@ -175,21 +131,7 @@ public class Translator {
 		return word;
 	}
 
-	// Return the first word of line as an integer. If there is
-	// any error, return the maximum int
-	private int scanInt() {
-		String word = scan();
-		if (word.length() == 0) {
-			return Integer.MAX_VALUE;
-		}
 
-		try {
-			return Integer.parseInt(word);
-		} catch (NumberFormatException e) {
-			return Integer.MAX_VALUE;
-		}
-	}
-	
 	/**
 	 * @param ins
 	 * @return
