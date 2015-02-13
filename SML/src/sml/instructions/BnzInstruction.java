@@ -12,30 +12,30 @@ import sml.Machine;
 public class BnzInstruction extends Instruction {
 	private int register;
 	private int registerId;
-	private String label2;
+	private String jumpToLabel;
 
 	public BnzInstruction(String label, String opcode) {
 		super(label, opcode);
 	}
 
-	public BnzInstruction(String label, int register, String label2) {
+	public BnzInstruction(String label, int register, String jumpToLbl) {
 		super(label, "bnz");
 		this.register = register;
-		this.label2 = label2;
+		this.jumpToLabel = jumpToLbl;
 
 	}
 
 	@Override
 	public void execute(Machine m) {
 		registerId = m.getRegisters().getRegister(register);
-		System.out.println("BNZ register "+ register+ " value "+ label2);
+		System.out.println("BNZ register "+ register+ " value "+ jumpToLabel);
 		if(registerId!= 0){
-			m.setPc(m.getLabels().indexOf(label2));
+			m.setPc(m.getLabels().indexOf(jumpToLabel));
 		}
 	}
 
 	@Override
 	public String toString() {
-		return super.toString() + " register " + register + " value is " + label2;
+		return super.toString() + " register " + register + " value is " + jumpToLabel;
 	}
 }

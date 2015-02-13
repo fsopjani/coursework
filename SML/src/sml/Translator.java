@@ -60,7 +60,7 @@ public class Translator {
 				wholeLine = line;
 				String label = scan();
 				if (label.length() > 0) {
-					Instruction ins = getInstruction(label);
+					Instruction ins = getInstruction(wholeLine);
 					if (ins != null) {
 						labels.addLabel(label);
 						program.add(ins);
@@ -81,13 +81,13 @@ public class Translator {
 
 
 	/**
-	 * @param label
+	 * @param line
 	 * @return
 	 */
-	public Instruction getInstruction(String label) {
+	public Instruction getInstruction(String line) {
 		if (line.equals(""))
 			return null;
-		SMLInstrcutions smlIns = new SMLInstrcutions(wholeLine);
+		SMLInstrcutions smlIns = new SMLInstrcutions(line);
 		String ins = smlIns.getInstruction();
 		int noOfArgs =0;
 		
@@ -98,7 +98,7 @@ public class Translator {
 			for(Constructor<?> ctr : constructors){
 				Class<?>[] consPropTypes = ctr.getParameterTypes();
 				Object[] argsObj = smlIns.getConstructionArgs();
-				noOfArgs = smlIns.getNumberOfArgs();
+				noOfArgs = smlIns.getNumberOfConsArgs();
 				if(noOfArgs == consPropTypes.length){
 					isTypeMatch = smlIns.checkInstructionType(consPropTypes);
 					if(isTypeMatch){

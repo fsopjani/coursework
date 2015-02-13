@@ -41,7 +41,7 @@ public class SMLInstrcutions {
 		return constructorArgs.toArray();
 	}
 
-	public int getNumberOfArgs(){
+	public int getNumberOfConsArgs(){
 		return constructorArgs.size();
 	}
 
